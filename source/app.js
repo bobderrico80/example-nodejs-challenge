@@ -1,38 +1,25 @@
 const express = require('express');
+const expressHandlebars = require('express-handlebars');
 const request = require('request-promise-native');
+const groupCommits = require('./lib/groupCommits');
+const shaColorHelper = require('./lib/shaColorHelper');
 
 const port = 8080;
 const logger = console;
 const app = express();
 const githubApiUrl = 'https://api.github.com/repos/nodejs/node/commits';
 
+app.engine('handlebars', expressHandlebars({ defaultLayout: 'main', helpers: { shaColorHelper } }));
+app.set('view engine', 'handlebars');
+
 app.get('/', async (req, res) => {
   try {
-    const groupedCommits = (await request(githubApiUrl, {
+    const githubCommits = await request(githubApiUrl, {
       headers: { 'User-Agent': 'Request-Promise-Native' },
       json: true,
-    }))
-      // Pull out just the values we need
-      .map(({ sha, commit }) => ({
-        sha,
-        authorName: commit.author.name,
-        authorEmail: commit.author.email,
-      }))
+    });
 
-      // Group by author email
-      .reduce((previousGroupedCommits, commit) => {
-        const key = commit.authorEmail;
-
-        if (!previousGroupedCommits[key]) {
-          return { ...previousGroupedCommits, [key]: [commit] };
-        }
-
-        const previousGroup = previousGroupedCommits[key];
-
-        return { ...previousGroupedCommits, [key]: [...previousGroup, commit] };
-      }, {});
-
-    res.status(200).json(groupedCommits);
+    res.render('index', { groupedCommits: groupCommits(githubCommits) });
   } catch (error) {
     logger.error(error);
     res.status(500).send('Internal server error');

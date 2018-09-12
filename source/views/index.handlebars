@@ -1,0 +1,9 @@
+<h1>NodeJS Recent Github Commits and Committers</h1>
+{{#each groupedCommits}}
+<h2>{{@key}}</h2>
+<ul>
+  {{#each this}}
+  <li>{{{shaColorHelper this}}}</li>
+  {{/each}}
+</ul>
+{{/each}}
